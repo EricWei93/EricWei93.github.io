@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html class="has-navbar-fixed-top">
+<head><meta name="generator" content="Hexo 3.9.0">
+    <meta charset="utf-8">
+<title>Git原理 - Eric&#39;s Blog</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/outdated-browser/1.1.5/outdatedbrowser.min.css">
+
+
+
+
+<meta name="description" content="Eric's Blog">
+
+
+
+
+
+    <meta name="description" content="GitGit是平常开发中常用的分布式版本管理工具，它与SVN有很多不同的地方，最重要的不同就是SVN是集中式的。此外对于分支的管理也有很大的不同，Git分支是通过指向某次提交，而SVN则是拷贝一个目录，这样在创建分支的性能上就会有明显的差距，特别是当文件很多的情况下。另外Git对于版本的管理是基于元数据的，而SVN是基于文件的。">
+<meta name="keywords" content="工具,互联网">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Git原理">
+<meta property="og:url" content="http://yoursite.com/2019/11/17/Git原理/index.html">
+<meta property="og:site_name" content="Eric&#39;s Blog">
+<meta property="og:description" content="GitGit是平常开发中常用的分布式版本管理工具，它与SVN有很多不同的地方，最重要的不同就是SVN是集中式的。此外对于分支的管理也有很大的不同，Git分支是通过指向某次提交，而SVN则是拷贝一个目录，这样在创建分支的性能上就会有明显的差距，特别是当文件很多的情况下。另外Git对于版本的管理是基于元数据的，而SVN是基于文件的。">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="http://yoursite.com/static/images/git/git.png">
+<meta property="og:image" content="http://yoursite.com/static/images/git/024f245887c2ac566c40e4685699d89b.jpg">
+<meta property="og:image" content="http://yoursite.com/static/images/git/a95788015655d87f717410a172c64959.png">
+<meta property="og:image" content="http://yoursite.com/static/images/git/f7e2e494b7e91a304dbfb9f2eb69c6e2.png">
+<meta property="og:image" content="http://yoursite.com/static/images/git/7f6a8e5df793efae5e75549357dfaa3b.png">
+<meta property="og:image" content="http://yoursite.com/static/images/git/0fab16ffca7a58a7db0331ab078a8798.png">
+<meta property="og:image" content="http://yoursite.com/static/images/git/6043e72012780cb2c68246ea2d0f18f6.png">
+<meta property="og:image" content="http://yoursite.com/static/images/git/9f390c6402ef5584c318985613b168b1.png">
+<meta property="og:image" content="http://yoursite.com/static/images/git/47fa3f231e61d5039e3bb9958b491d88.png">
+<meta property="og:image" content="http://yoursite.com/static/images/git/a1bc2d9c55aa09b3d5c9c796fdc0cdf0.png">
+<meta property="og:image" content="http://yoursite.com/static/images/git/1820025e467b6d6ea64605703efa4dd1.png">
+<meta property="og:image" content="http://yoursite.com/static/images/git/ab34e84a4c958e2a67c18144209e0bbe.png">
+<meta property="og:image" content="http://yoursite.com/static/images/git/48db038a0e052e4783a298afd971b5d9.png">
+<meta property="og:image" content="http://yoursite.com/static/images/git/eaf0e8abcac5c7a71513c3737e668af5.png">
+<meta property="og:image" content="http://yoursite.com/static/images/git/e82895c0cbba6445fb83a00e8e518b32.png">
+<meta property="og:image" content="http://yoursite.com/static/images/git/7991a882007ce37902a8b4aca005111a.png">
+<meta property="og:image" content="http://yoursite.com/static/images/git/d7b0400578f8e568244dedeecbcccdfe.png">
+<meta property="og:image" content="http://yoursite.com/static/images/git/8456db92c4c457e974a1e91ecfe22e20.png">
+<meta property="og:image" content="http://yoursite.com/static/images/git/b331aa8d4784b957e05790f50b16879e.png">
+<meta property="og:image" content="http://yoursite.com/static/images/git/87128b506fb0861afbf1f2bc3dbff2c1.png">
+<meta property="og:updated_time" content="2019-11-17T14:21:57.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Git原理">
+<meta name="twitter:description" content="GitGit是平常开发中常用的分布式版本管理工具，它与SVN有很多不同的地方，最重要的不同就是SVN是集中式的。此外对于分支的管理也有很大的不同，Git分支是通过指向某次提交，而SVN则是拷贝一个目录，这样在创建分支的性能上就会有明显的差距，特别是当文件很多的情况下。另外Git对于版本的管理是基于元数据的，而SVN是基于文件的。">
+<meta name="twitter:image" content="http://yoursite.com/static/images/git/git.png">
+
+
+
+
+
+<link rel="icon" href="/images/favicon.png">
+
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Ovo|Source+Code+Pro">
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bulma/0.6.2/css/bulma.min.css">
+
+
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/lightgallery/1.6.8/css/lightgallery.min.css">
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/justifiedGallery/3.6.5/css/justifiedGallery.min.css">
+
+
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/atom-one-light.min.css">
+
+<link rel="stylesheet" href="/css/style.css">
+
+<script defer src="//use.fontawesome.com/releases/v5.0.8/js/all.js"></script>
+
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+
+
+</head>
+<body>
+    
+<nav class="navbar is-transparent is-fixed-top navbar-main" role="navigation" aria-label="main navigation">
+    <div class="container">
+        <div class="navbar-brand">
+            <a class="navbar-item navbar-logo" href="/">
+                
+                <img src="/images/logo.png" alt height="28">
+                
+            </a>
+            <div class="navbar-burger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+        
+        <div class="navbar-menu navbar-start">
+            
+            <a class="navbar-item " href="/archives">归档</a>
+            
+            <a class="navbar-item " href="/categories/LifeStyle">生活</a>
+            
+            <a class="navbar-item " href="/categories/Technology">技术</a>
+            
+            <a class="navbar-item " href="/about">关于</a>
+            
+        </div>
+        
+        <div class="navbar-menu navbar-end">
+            
+            <a class="navbar-item search" title="搜索" href="javascript:;">
+                <i class="fas fa-search"></i>
+            </a>
+            
+            
+            
+            <a class="navbar-item" title="GitHub" href="https://github.com/ppoffice/hexo-theme-minos">
+                
+                <i class="fab fa-github"></i>
+                
+            </a>
+               
+            
+        </div>
+    </div>
+</nav>
+
+    <section class="section">
+    <div class="container">
+    <article class="article content gallery" itemscope itemprop="blogPost">
+    <h1 class="article-title is-size-3 is-size-4-mobile" itemprop="name">
+        
+            Git原理
+        
+    </h1>
+    <div class="article-meta columns is-variable is-1 is-multiline is-mobile is-size-7-mobile">
+        <span class="column is-narrow">
+            <time datetime="2019-11-17T13:36:00.000Z" itemprop="datePublished">11月 17 2019</time>
+        </span>
+        
+        <span class="column is-narrow article-category">
+            <i class="far fa-folder"></i>
+            <a class="article-category-link" href="/categories/Technology/">Technology</a>
+        </span>
+        
+        
+        <span class="column is-narrow">
+            
+            
+            13 分钟 读完 (约 1972 字)
+        </span>
+        
+    </div>
+    <div class="article-entry is-size-6-mobile" itemprop="articleBody">
+    
+        <div class="justified-gallery">
+
+<p><img src="/static/images/git/git.png" alt="image"></p>
+</div>
+
+<h3 id="Git"><a href="#Git" class="headerlink" title="Git"></a>Git</h3><p>Git是平常开发中常用的分布式版本管理工具，它与SVN有很多不同的地方，最重要的不同就是SVN是集中式的。此外对于分支的管理也有很大的不同，Git分支是通过指向某次提交，而SVN则是拷贝一个目录，这样在创建分支的性能上就会有明显的差距，特别是当文件很多的情况下。另外Git对于版本的管理是基于元数据的，而SVN是基于文件的。</p>
+<a id="more"></a>
+
+<h3 id="Git核心概念"><a href="#Git核心概念" class="headerlink" title="Git核心概念"></a>Git核心概念</h3><ol>
+<li>工作区(Workspace)是电脑中实际的目录。</li>
+<li>暂存区(Index)类似于缓存区域，临时保存你的改动。</li>
+<li>仓库区(Repository)，分为本地仓库和远程仓库。<br>通过一些git命令可以在这三个地方管理你的文件(图版来自网络)<br><img src="/static/images/git/024f245887c2ac566c40e4685699d89b.jpg" alt="024f245887c2ac566c40e4685699d89b.jpg"></li>
+</ol>
+<h3 id="Git原理"><a href="#Git原理" class="headerlink" title="Git原理"></a>Git原理</h3><p>Git的操作有很多教程，就不再记录，写一下Git版本管理的原理，首先介绍我对Git的三个对象的理解：</p>
+<ol>
+<li><strong>Blob</strong>，记录了文件的内容；</li>
+<li><strong>Tree</strong>，文件的目录信息；</li>
+<li><strong>Commit</strong>，每次提交的相关信息。<br>还有一个<strong>Tag</strong>,但是用的较少，所以没有深入去了解，就不做描述，原理应该和上面三个一样。</li>
+</ol>
+<p>下面来分析一下上面本个对象：<br>首先初始化一个Git仓库<br><img src="/static/images/git/a95788015655d87f717410a172c64959.png" alt="a95788015655d87f717410a172c64959.png"><br>进.git文件夹看一下<br><img src="/static/images/git/f7e2e494b7e91a304dbfb9f2eb69c6e2.png" alt="f7e2e494b7e91a304dbfb9f2eb69c6e2.png"><br>目录里有一个objects文件夹，再进去<br><img src="/static/images/git/7f6a8e5df793efae5e75549357dfaa3b.png" alt="7f6a8e5df793efae5e75549357dfaa3b.png"><br>看到里面只有info和pack两个文件夹，这两个文件夹都是空文件夹，现在我们只是初始化了一个空仓库，并没有提交什么内容，那么来创建一个测试文件<br><img src="/static/images/git/0fab16ffca7a58a7db0331ab078a8798.png" alt="0fab16ffca7a58a7db0331ab078a8798.png"><br>创建好文件后，我们并没有提交，此时再来看一下上面的几个文件夹<br><img src="/static/images/git/6043e72012780cb2c68246ea2d0f18f6.png" alt="6043e72012780cb2c68246ea2d0f18f6.png"><br>从图中可以看到这些文件夹并没有什么变化，这是因为我们还没有把文件交给Git托管，那么我们来托管一下<br><img src="/static/images/git/9f390c6402ef5584c318985613b168b1.png" alt="9f390c6402ef5584c318985613b168b1.png"><br>我们把文件放到了暂存区，从图中可以看到在.git目录下多了一个index文件，objects目录下多了一个9f文件夹，9f文件夹下多了一个文件。我们先通过命令看一下这个文件<br><img src="/static/images/git/47fa3f231e61d5039e3bb9958b491d88.png" alt="47fa3f231e61d5039e3bb9958b491d88.png"><br>通过<br><figure class="highlight plain hljs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git cat-file -t filename</span><br></pre></td></tr></table></figure></p>
+<p>这个命令看出这是一个blob类型的对象，然后通过<br><figure class="highlight plain hljs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git cat-file -p filename</span><br></pre></td></tr></table></figure></p>
+<p>来显示文件内容，可以看到就是我们刚刚创建的文件内容。这里的文件名需要说明一下，实际上是对test.txt这个文件的内容做了一个sha1得出了文件名，只是hash值的前两位做了目录名，剩下的38位做文件名。<br>再看一下.git文件夹下的HEAD文件<br><img src="/static/images/git/a1bc2d9c55aa09b3d5c9c796fdc0cdf0.png" alt="a1bc2d9c55aa09b3d5c9c796fdc0cdf0.png"><br>里面记录了当前分支，那么我们去master分支里看一下<br><img src="/static/images/git/1820025e467b6d6ea64605703efa4dd1.png" alt="1820025e467b6d6ea64605703efa4dd1.png"><br>因为没有提交，所以里面是空的，做一次提交再看一下<br><img src="/static/images/git/ab34e84a4c958e2a67c18144209e0bbe.png" alt="ab34e84a4c958e2a67c18144209e0bbe.png"><br>多了一个提交相关的文件<br><img src="/static/images/git/48db038a0e052e4783a298afd971b5d9.png" alt="48db038a0e052e4783a298afd971b5d9.png"><br>当再进入objects文件夹时可以看到又多了两个文件夹，分别进入两个文件夹，查看两个文件的类型及内容，发现一个是tree类型，它的内容是一个blob类型的对象，且这个对象就是刚才我们做了add操作后生成的那个文件。而另一个文件类型是commit类型的对象，它的内容包含了一个tree类型的对象，这个对象就是刚刚产生的那个tree对象。除了tree对象之外，还附加一些提交信息，比如提交者之类的。<br><img src="/static/images/git/eaf0e8abcac5c7a71513c3737e668af5.png" alt="eaf0e8abcac5c7a71513c3737e668af5.png"><br>再看一下未提交时是空的refs/head文件夹，提交后已经有了一个master文件，我们看一下文件内容，发现里面记录的就是刚才那次提交的commit对象。我们来修改一个test.txt这个文件，然后再提交，看一下有什么变化<br><img src="/static/images/git/e82895c0cbba6445fb83a00e8e518b32.png" alt="e82895c0cbba6445fb83a00e8e518b32.png"><br>可以看到第二次提交之后objects文件夹下又多了三个文件夹，分别记录了和第一次提交一样的三个对象的信息。此时再看一下refs/head中master文件的内容<br><img src="/static/images/git/7991a882007ce37902a8b4aca005111a.png" alt="7991a882007ce37902a8b4aca005111a.png"><br>结合前一张图可以看出此时master文件中记录的信息变成了第二次提交的commit对象。现在来做最后一个操作，新建一个分支，做一次提交<br><img src="/static/images/git/d7b0400578f8e568244dedeecbcccdfe.png" alt="d7b0400578f8e568244dedeecbcccdfe.png"><br>HEAD中记录的分支变成了我们新建的这个分支<br><img src="/static/images/git/8456db92c4c457e974a1e91ecfe22e20.png" alt="8456db92c4c457e974a1e91ecfe22e20.png"><br>此时在refs/head文件夹下多了一个feature-test文件，对比master文件，发现两个文件内容是一样的，都是记录了最新一次提交的commit对象。这是因为我们的新分支是基于master分支创建 的，并没有做什么修改。现在我们修改文件，然后提交<br><img src="/static/images/git/b331aa8d4784b957e05790f50b16879e.png" alt="b331aa8d4784b957e05790f50b16879e.png"><br>图中展示了提交后的情况，和开始两次提交一样，objects文件夹下会产生新的文件，但是refs/head中feature-test和master文件变得不一样了，如果去objects文件夹中对比，可以发现feature-test文件中记录的是最新的一次提交的commit对象。从中图也可以看到HEAD文件中记录的分支名变成了feature-test。到此为止，我们做了很多操作，可以来总结一下了。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p><img src="/static/images/git/87128b506fb0861afbf1f2bc3dbff2c1.png" alt="87128b506fb0861afbf1f2bc3dbff2c1.png"><br>Git中有一个HEAD指针，它通过<br><code>ref: refs/heads/feature-test</code><br>的方式指向当前分支，而在ref/head文件夹中记录了所有分支，这些分支里记录了各自的最新提交commit对象，commit对象指向tree对象，tree对象包含的是一些目录信息或者是blob对象，而blob对象通过压缩的方式记录了文件内容。所以要切换分支，只需要改变HEAD文件中的指向，回退版本就是对相应分支中记录的commit对象的修改。</p>
+
+    
+    </div>
+    
+    <div class="columns is-variable is-1 is-multiline is-mobile">
+    
+        <span class="column is-narrow"><a class="tag is-light article-tag" href="/tags/工具/">#工具</a></span>
+    
+        <span class="column is-narrow"><a class="tag is-light article-tag" href="/tags/互联网/">#互联网</a></span>
+    
+    </div>
+    
+    
+    <div class="columns is-mobile is-multiline article-nav">
+        <span class="column is-12-mobile is-half-desktop is-hidden-mobile article-nav-prev">
+            
+        </span>
+        <span class="column is-12-mobile is-half-desktop  article-nav-next">
+            
+            <a href="/2019/10/06/计算机网络/">计算机网络基础</a>
+            
+        </span>
+    </div>
+    
+</article>
+
+
+<div class="sharebox">
+    
+<div class="notification is-danger">
+    You need to set <code>install_url</code> to use ShareThis. Please set it in <code>_config.yml</code>.
+</div>
+
+</div>
+
+
+
+<div class="comments">
+    <h3 class="title is-4">评论</h3>
+    
+<div id="disqus_thread">
+    
+    <div class="notification is-danger">
+        You forgot to set the <code>shortname</code> for Disqus. Please set it in <code>_config.yml</code>.
+    </div>
+    
+    <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+</div>
+
+    </div>
+</section>
+    <footer class="footer">
+    <div class="container">
+        <div class="columns content">
+            <div class="column is-narrow has-text-centered">
+                &copy; 2019 Eric Wei&nbsp;
+                Powered by <a href="http://hexo.io/" target="_blank">Hexo</a> & <a href="http://github.com/ppoffice/hexo-theme-minos">Minos</a>
+            </div>
+            <div class="column is-hidden-mobile"></div>
+
+            
+            <div class="column is-narrow">
+                <div class="columns is-mobile is-multiline is-centered">
+                
+                    
+                <a class="column is-narrow has-text-black" title="GitHub" href="https://github.com/ppoffice/hexo-theme-minos">
+                    
+                    GitHub
+                    
+                </a>
+                
+                </div>
+            </div>
+            
+            
+        </div>
+    </div>
+</footer>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment-with-locales.min.js"></script>
+
+<!-- test if the browser is outdated -->
+<div id="outdated">
+    <h6>Your browser is out-of-date!</h6>
+    <p>Update your browser to view this website correctly. <a id="btnUpdateBrowser" href="http://outdatedbrowser.com/">Update my browser now </a></p>
+    <p class="last"><a href="#" id="btnCloseUpdateBrowser" title="Close">&times;</a></p>
+</div>
+<script src="//cdnjs.cloudflare.com/ajax/libs/outdated-browser/1.1.5/outdatedbrowser.min.js"></script>
+<script>
+    $(document).ready(function () {
+        // plugin function, place inside DOM ready function
+        outdatedBrowser({
+            bgColor: '#f25648',
+            color: '#ffffff',
+            lowerThan: 'flex'
+        })
+    });
+</script>
+
+<script>
+    window.FontAwesomeConfig = {
+        searchPseudoElements: true
+    }
+    moment.locale("zh-CN");
+</script>
+
+
+    
+    
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+<script>
+    MathJax.Hub.Config({
+        "HTML-CSS": {
+            matchFontHeight: false
+        },
+        SVG: {
+            matchFontHeight: false
+        },
+        CommonHTML: {
+            matchFontHeight: false
+        },
+        tex2jax: {
+            inlineMath: [
+                ['$','$'],
+                ['\\(','\\)']
+            ]
+        }
+    });
+</script>
+
+    
+    
+    
+    
+<script src="//cdnjs.cloudflare.com/ajax/libs/lightgallery/1.6.8/js/lightgallery-all.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/justifiedGallery/3.6.5/js/jquery.justifiedGallery.min.js"></script>
+<script>
+    (function ($) {
+        $(document).ready(function () {
+            if (typeof($.fn.lightGallery) === 'function') {
+                $('.article.gallery').lightGallery({ selector: '.gallery-item' });
+            }
+            if (typeof($.fn.justifiedGallery) === 'function') {
+                $('.justified-gallery').justifiedGallery();
+            }
+        });
+    })(jQuery);
+</script>
+
+    
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <style>
+        .hljs {
+            position: relative;
+        }
+
+        .hljs .clipboard-btn {
+            float: right;
+            color: #9a9a9a;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        .hljs .clipboard-btn:hover {
+          color: #8a8a8a;
+        }
+
+        .hljs > .clipboard-btn {
+            display: none;
+            position: absolute;
+            right: 4px;
+            top: 4px;
+        }
+
+        .hljs:hover > .clipboard-btn {
+            display: inline;
+        }
+
+        .hljs > figcaption > .clipboard-btn {
+            margin-right: 4px;
+        }
+    </style>
+    <script>
+      $(document).ready(function () {
+        $('figure.hljs').each(function(i, figure) {
+          var codeId = 'code-' + i;
+          var code = figure.querySelector('.code');
+          var copyButton = $('<button>Copy <i class="far fa-clipboard"></i></button>');
+          code.id = codeId;
+          copyButton.addClass('clipboard-btn');
+          copyButton.attr('data-clipboard-target-id', codeId);
+
+          var figcaption = figure.querySelector('figcaption');
+
+          if (figcaption) {
+            figcaption.append(copyButton[0]);
+          } else {
+            figure.prepend(copyButton[0]);
+          }
+        })
+
+        var clipboard = new ClipboardJS('.clipboard-btn', {
+          target: function(trigger) {
+            return document.getElementById(trigger.getAttribute('data-clipboard-target-id'));
+          }
+        });
+        clipboard.on('success', function(e) {
+          e.clearSelection();
+        })
+      })
+    </script>
+
+    
+    
+
+    
+
+
+<script src="/js/script.js"></script>
+
+    
+    <div class="searchbox ins-search">
+    <div class="searchbox-mask"></div>
+    <div class="searchbox-container ins-search-container">
+        <div class="searchbox-input-wrapper">
+            <input type="text" class="searchbox-input ins-search-input" placeholder="站内搜索">
+            <span class="searchbox-close ins-close ins-selectable"><i class="fa fa-times-circle"></i></span>
+        </div>
+        <div class="searchbox-result-wrapper ins-section-wrapper">
+            <div class="ins-section-container"></div>
+        </div>
+    </div>
+</div>
+<script>
+    (function (window) {
+        var INSIGHT_CONFIG = {
+            TRANSLATION: {
+                POSTS: '文章',
+                PAGES: '页面',
+                CATEGORIES: '分类',
+                TAGS: '标签',
+                UNTITLED: '(无标题)',
+            },
+            CONTENT_URL: '/content.json',
+        };
+        window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+    })(window);
+</script>
+<script src="/js/insight.js"></script>
+    
+</body>
+</html>
